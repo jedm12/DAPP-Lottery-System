@@ -25,11 +25,15 @@ function Home() {
   const [refreshFlag, setRefreshFlag] = useState(false); // State variable for triggering auto refresh
 
   useEffect(() => {
-    const loadBlockchainData = async () => {
+    const loadBlockchainDataAndEnterLottery = async () => {
       if (typeof window.ethereum !== 'undefined') {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
         try {
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
           const signer = provider.getSigner();
+          if (!signer) {
+            throw new Error("Unable to get signer");
+          }
           const address = await signer.getAddress();
           setCurrentAccount(address);
           window.ethereum.on('accountsChanged', (accounts) => {
@@ -40,7 +44,7 @@ function Home() {
           const status = await contract.isComplete();
           setStatus(status);
           const winner = await contract.getWinner();
-          setIsWinner(winner === currentAccount);
+          setIsWinner(winner === address);
           if (status && winner !== ethers.constants.AddressZero) {
             setWinnerAddress(winner);
           }
@@ -58,10 +62,14 @@ function Home() {
       }
     };
 
-    loadBlockchainData();
-  }, [currentAccount, refreshFlag]); // Add refreshFlag as a dependency
+    loadBlockchainDataAndEnterLottery();
+  }, [refreshFlag]); // Only refresh when refreshFlag changes
 
   const enterLottery = async () => {
+    if (!contractInstance) {
+      console.error("Contract instance not set");
+      return;
+    }
     const amountToSend = ethers.utils.parseEther('0.001');
     const tx = await contractInstance.enter({ value: amountToSend });
     await tx.wait();
@@ -69,6 +77,10 @@ function Home() {
   }
 
   const claimPrize = async () => {
+    if (!contractInstance) {
+      console.error("Contract instance not set");
+      return;
+    }
     const tx = await contractInstance.claimPrize();
     await tx.wait();
     setRefreshFlag(prevFlag => !prevFlag); // Toggle refreshFlag to trigger auto refresh
@@ -109,7 +121,7 @@ function Home() {
                     <ul style={{ listStyle: "none", padding: 0, margin: "auto", textAlign: "center" }}>
                       {participants.map((participant, index) => (
                         <li key={index} style={{ display: "flex", alignItems: "center", paddingLeft: "1.5em", lineHeight: "1.5em", backgroundImage: `url('/gold.png')`, backgroundRepeat: "no-repeat", backgroundSize: "contain", marginBottom: "1em" }}>
-                          <span>{participant}</span>
+                          <span>{participant.substring(0, 8)}...{participant.slice(-5)}</span>
                         </li>
                       ))}
                     </ul>
@@ -119,8 +131,9 @@ function Home() {
                   <p style={{ color: "white" }} >Total Prize Pool: {totalPrizePool} ETH 🟡</p>
 
                   {status && winnerAddress && (
-                    <p style={{ color: "white" }}>🏆Winner: {winnerAddress}🏆</p>
+                    <p style={{ color: "white" }}>🏆Winner: {winnerAddress.substring(0, 8)}... {winnerAddress.slice(-5)} 🏆</p>
                   )}
+
                 </CardBody>
               </Card>
             </Col>
