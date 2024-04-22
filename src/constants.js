@@ -1,5 +1,5 @@
-const contractAddress = "0xBDe77Edb54D9672e56D338D0Bce90ECe640BDF26";
-const contractAbi = [
+const contractAddress = "0x6c0a728D769FB91e87A8451D44540fA508B08Be3";
+const contractAbi =[
 	{
 		"inputs": [],
 		"name": "claimPrize",
@@ -67,6 +67,32 @@ const contractAbi = [
 	},
 	{
 		"inputs": [],
+		"name": "getTotalParticipants",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getTotalPrizePool",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
 		"name": "getWinner",
 		"outputs": [
 			{
@@ -105,6 +131,19 @@ const contractAbi = [
 		"type": "function"
 	},
 	{
+		"inputs": [],
+		"name": "minimumParticipants",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"inputs": [
 			{
 				"internalType": "uint256",
@@ -125,12 +164,38 @@ const contractAbi = [
 	},
 	{
 		"inputs": [],
-		"name": "status",
+		"name": "totalParticipants",
 		"outputs": [
 			{
-				"internalType": "bool",
+				"internalType": "uint256",
 				"name": "",
-				"type": "bool"
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "totalPrizePool",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "winner",
+		"outputs": [
+			{
+				"internalType": "address payable",
+				"name": "",
+				"type": "address"
 			}
 		],
 		"stateMutability": "view",

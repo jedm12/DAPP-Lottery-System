@@ -1,80 +1,147 @@
-import React, {useState, useEffect} from "react";
-import {ethers} from 'ethers';
+import React, { useState, useEffect } from "react";
+import { ethers } from 'ethers';
 import constants from './constants';
 
-function Home () {
-    const [currentAccount, setCurrentAccount] = useState("");
-    const [contractInstance, setcontractInstance] = useState('');
-    const [status, setStatus] = useState(false);
-    const [isWinner, setIsWinner] = useState('');
+import {
+  Button,
+  Container,
+  Row,
+  Col,
+  Card,
+  CardBody,
+  CardTitle,
+} from "reactstrap";
 
-    useEffect(() => {
-        const loadBlockchainData = async () => {
-            if (typeof window.ethereum !== 'undefined') {
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                try {
-                    const signer = provider.getSigner();
-                    const address = await signer.getAddress();
-                    console.log(address);
-                    setCurrentAccount(address);
-                    window.ethereum.on('accountsChanged', (accounts) => {
-                        setCurrentAccount(accounts[0]);
-                        console.log(currentAccount);
-                    })
-                } catch (err) {
-                    console.error(err);
-                }
-            } else {
-                alert('Please install Metamask to use this application')
+function Home() {
+  const [isHovered, setIsHovered] = useState(false);
+  const [currentAccount, setCurrentAccount] = useState("");
+  const [contractInstance, setContractInstance] = useState(null);
+  const [status, setStatus] = useState(false);
+  const [isWinner, setIsWinner] = useState(false);
+  const [participants, setParticipants] = useState([]);
+  const [participantCount, setParticipantCount] = useState(0);
+  const [totalPrizePool, setTotalPrizePool] = useState(0);
+  const [winnerAddress, setWinnerAddress] = useState("");
+  const [refreshFlag, setRefreshFlag] = useState(false); // State variable for triggering auto refresh
 
-            }
-        };
-
-        const contract = async () => {
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
-            const signer = provider.getSigner();
-            const contractIns = new ethers.Contract(constants.contractAddress, constants.contractAbi, signer);
-            setcontractInstance(contractIns);
-            const status = await contractInstance.isComplete();
-            setStatus(status);
-            const winner = await contractInstance.getWinner();
-            if (winner === currentAccount) {
-                setIsWinner(true);
-            } else {
-                setIsWinner(false);
-            }
+  useEffect(() => {
+    const loadBlockchainData = async () => {
+      if (typeof window.ethereum !== 'undefined') {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        try {
+          const signer = provider.getSigner();
+          const address = await signer.getAddress();
+          setCurrentAccount(address);
+          window.ethereum.on('accountsChanged', (accounts) => {
+            setCurrentAccount(accounts[0]);
+          });
+          const contract = new ethers.Contract(constants.contractAddress, constants.contractAbi, signer);
+          setContractInstance(contract);
+          const status = await contract.isComplete();
+          setStatus(status);
+          const winner = await contract.getWinner();
+          setIsWinner(winner === currentAccount);
+          if (status && winner !== ethers.constants.AddressZero) {
+            setWinnerAddress(winner);
+          }
+          const participants = await contract.getPlayers();
+          setParticipants(participants);
+          const count = await contract.getTotalParticipants();
+          setParticipantCount(count.toNumber());
+          const prizePool = await contract.getTotalPrizePool();
+          setTotalPrizePool(ethers.utils.formatEther(prizePool));
+        } catch (err) {
+          console.error(err);
         }
+      } else {
+        alert('Please install Metamask to use this application');
+      }
+    };
 
-        loadBlockchainData();
-        contract();
-    }, [currentAccount]);
+    loadBlockchainData();
+  }, [currentAccount, refreshFlag]); // Add refreshFlag as a dependency
 
-    const enterLottery = async () => {
-        const amountToSend = ethers.utils.parseEther('0.001');
-        const tx = await contractInstance.enter({value: amountToSend,});
-        await tx.wait();
-    }
+  const enterLottery = async () => {
+    const amountToSend = ethers.utils.parseEther('0.001');
+    const tx = await contractInstance.enter({ value: amountToSend });
+    await tx.wait();
+    setRefreshFlag(prevFlag => !prevFlag); // Toggle refreshFlag to trigger auto refresh
+  }
 
-    const claimPrize = async () => {
-        const tx = await contractInstance.claimPrize();
-        await tx.wait();
-    }
-    
+  const claimPrize = async () => {
+    const tx = await contractInstance.claimPrize();
+    await tx.wait();
+    setRefreshFlag(prevFlag => !prevFlag); // Toggle refreshFlag to trigger auto refresh
+  }
 
+  return (
+    <div>
+      <div className="landing-page" style={{ backgroundImage: "url('/wallpaper.png')", height: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
+        <Container>
+          <Row>
+            <Col lg="6" className="mt-5">
+              <h1 className="display-4" style={{fontSize: "50px", color:"white"}}>Welcome to the Lottery Page</h1>
+              <p className="lead" style={{fontSize: "30px", color:"gold"}} >Enter the lottery and stand a chance to win the prize pool!</p>
+            </Col>
+            <Col lg="6" className="mt-5">
+              <Card style={{ backgroundColor: "#272727", border: "3px solid #CE7871", borderRadius: "20px", width: "100%", height: "100%", margin: "auto", color: "white" }}>
+                <CardBody className="text-center">
+                  <div className="mt-4 text-center"> 
+                    {status ? (
+                      isWinner ? (
+                        <Button id="claim" color="success" onClick={claimPrize} onMouseEnter={() => setIsHovered(true)}
+                          onMouseLeave={() => setIsHovered(false)} style={{...buttonStyle, backgroundColor: isHovered ? "transparent" : "gold",
+                          color: isHovered ? "#fff" : "#000",
+                          border: isHovered ? "3px solid gold" : "none"}}>Claim Prize</Button>
+                      ) : (
+                        <p style={{color: "red"}}>You are not the winner</p>
+                      )
+                    ) : (
+                      <Button id="enter" color="primary" onClick={enterLottery} onMouseEnter={() => setIsHovered(true)}
+                        onMouseLeave={() => setIsHovered(false)} style={{...buttonStyle, backgroundColor: isHovered ? "transparent" : "gold",
+                        color: isHovered ? "#fff" : "#000",
+                        border: isHovered ? "3px solid gold" : "none"}}>Enter Lottery</Button>
+                    )}
+                  </div>
 
-    return(
-        <div className="container">
-            <h1>Lottery Page</h1>
-            <div className="button-container">
-                {status ? ( isWinner ? (<button className="enter-button" onClick={claimPrize}> Claim Prize </button>): 
-                (<p>You are not the winner</p>)) : 
-                (<button className="enter-button" onClick={enterLottery}> Enter Lottery </button>)
+                  <CardTitle tag="h4" style={{ textAlign: "center" }}>Participants 👨 </CardTitle>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <ul style={{ listStyle: "none", padding: 0, margin: "auto", textAlign: "center" }}>
+                      {participants.map((participant, index) => (
+                        <li key={index} style={{ display: "flex", alignItems: "center", paddingLeft: "1.5em", lineHeight: "1.5em", backgroundImage: `url('/gold.png')`, backgroundRepeat: "no-repeat", backgroundSize: "contain", marginBottom: "1em" }}>
+                          <span>{participant}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
 
-                }
-            </div>
-        </div>
-    ) 
+                  <p style={{ color: "white" }} >Total Participants: {participantCount}</p>
+                  <p style={{ color: "white" }} >Total Prize Pool: {totalPrizePool} ETH 🟡</p>
 
+                  {status && winnerAddress && (
+                    <p style={{ color: "white" }}>🏆Winner: {winnerAddress}🏆</p>
+                  )}
+                </CardBody>
+              </Card>
+            </Col>
+          </Row>
+        </Container>
+      </div>
+    </div>
+  );
 }
+
+// Button style
+const buttonStyle = {
+  display: "block",
+  margin: "auto",
+  marginTop: "10px",
+  width: "200px",
+  height: "50px",
+  fontSize: "20px",
+  borderRadius: "10px",
+  transition: "background-color 0.3s, border-color 0.3s, color 0.3s",
+  cursor: "pointer",
+};
 
 export default Home;
